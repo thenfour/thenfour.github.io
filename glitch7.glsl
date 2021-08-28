@@ -30,6 +30,7 @@ vec4 tex(vec2 C) {
   vec2 R = iResolution.xy;
   vec4 o2 = vec4(1);
   vec2 uv = C / R.xy;
+    uv += iMouse.xy/iResolution.xy*.2 - .5;
   float t = iTime+10.;
   vec4 h = hash42(vec2(100. + sceneCell / 100.));// floor(uv) + floor(t * sceneswitchspeed));
   vec4 hscene = hash42(vec2(sceneCell+1.));// floor(uv) + floor(t * sceneswitchspeed));
