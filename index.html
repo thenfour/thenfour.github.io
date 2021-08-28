@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script> -->
+    <style type="text/css">
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            border: 0;
+            width: 100%;
+            height: 100%;
+            font-family: sans-serif;
+        }
+
+        body {
+            background-color: black;
+        }
+
+        #canvas {
+            background-color: black;
+            width: 100vw;
+            height: 100vh;
+            box-sizing: border-box;
+            border: 0;
+        }
+
+        #butan {
+            position: absolute;
+            top: 0;
+            left: 0;
+            color: #6b5d92;
+            text-shadow: -2px -2px 0 black, 2px -2px 0 black, -2px 2px 0 black, 2px 2px 0 black;
+            text-decoration: none;
+            cursor: pointer;
+            font-size: 24px;
+            border-radius: 18px;
+            border: 4px solid #6b5d92;
+            padding: 4px;
+            padding-left: 12px;
+            padding-right: 12px;
+            background-color: #222;
+            margin-top: 8px;
+            margin-left: 8px;
+        }
+
+        #footer {
+            position: absolute;
+            bottom: 6px;
+            left: 0;
+            width: 100vw;
+            text-align: right;
+            font-size: 18px;
+            text-shadow:
+                -2px -2px 0 black,
+                2px -2px 0 black,
+                -2px 2px 0 black,
+                2px 2px 0 black;
+        }
+
+        #footer,
+        a,
+        a:visited,
+        a:link,
+        a:hover {
+            color: #6b5d92;
+            text-shadow:
+                -2px -2px 0 black,
+                2px -2px 0 black,
+                -2px 2px 0 black,
+                2px 2px 0 black;
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="canvas" onclick="PlayPause()"></canvas>
+    <!-- <div style="position:absolute;top:0;left:0;color:white;font-size: 24px;" id="log">hi</div> -->
+    <div id="butan" onclick="newSeed()"></div>
+    <div id="footer"><a href="https://twitter.com/tenfour2">tenfour</a> made this</div>
+
+
+    <script id="vertexShader" type="x-shader/x-vertex">#version 300 es
+        precision lowp float;
+        in vec4 position;
+        void main() {
+            gl_Position = position;
+          }
+                </script>
+
+    <script type="text/javascript">
+
+        function GenerateSeed() {
+            return Math.floor(Math.random() * 10000);
+        }
+
+        var gDoAnimFrame = () => { };
+
+        let gSceneCell = GenerateSeed();
+        document.getElementById('butan').innerText = "Seed #" + gSceneCell;
+
+        function newSeed() {
+            gSceneCell = GenerateSeed();
+            document.getElementById('butan').innerText = "Seed #" + gSceneCell;
+            const url = new URL(window.location);
+            url.searchParams.set('seed', gSceneCell);
+            window.history.pushState({ seed: gSceneCell }, '', url);
+        }
+
+        window.onpopstate = function (e) {
+            if (e.state) {
+                gSceneCell = e.state.seed;
+                document.getElementById('butan').innerText = "Seed #" + gSceneCell;
+            }
+        };
+
+        var loadShader = function (gl, shaderSource, shaderType) {
+            var shader = gl.createShader(shaderType);
+            gl.shaderSource(shader, shaderSource);
+            gl.compileShader(shader);
+
+            // Check the compile status
+            var compiled = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+            if (!compiled) {
+                // Something went wrong during compilation; get the error
+                lastError = gl.getShaderInfoLog(shader);
+                console.log("*** Error compiling shader '" + shader + "':" + lastError);
+                gl.deleteShader(shader);
+                return null;
+            }
+
+            return shader;
+        }
+
+        var loadProgram = function (gl, shaders, opt_attribs, opt_locations) {
+            var program = gl.createProgram();
+            for (var ii = 0; ii < shaders.length; ++ii) {
+                gl.attachShader(program, shaders[ii]);
+            }
+            if (opt_attribs) {
+                for (var ii = 0; ii < opt_attribs.length; ++ii) {
+                    gl.bindAttribLocation(
+                        program,
+                        opt_locations ? opt_locations[ii] : ii,
+                        opt_attribs[ii]);
+                }
+            }
+            gl.linkProgram(program);
+
+            var linked = gl.getProgramParameter(program, gl.LINK_STATUS);
+            if (!linked) {
+                lastError = gl.getProgramInfoLog(program);
+                console.log("Error in program linking:" + lastError);
+                gl.deleteProgram(program);
+                return null;
+            }
+            return program;
+        };
+
+        const textResources = {
+            fragshader: { uri: 'fragshader.glsl' },
+        };
+
+        const OnAllResourcesLoaded = () => {
+            var canvas = document.getElementById("canvas");
+            var gl = canvas.getContext("webgl2");
+
+            var vertexShader = loadShader(gl, document.getElementById('vertexShader').text, gl.VERTEX_SHADER);
+            var fragmentShader = loadShader(gl, textResources.fragshader.text, gl.FRAGMENT_SHADER);
+            var program = loadProgram(gl, [vertexShader, fragmentShader]);
+            gl.useProgram(program);
+
+            // look up where the vertex data needs to go.
+            var positionLocation = gl.getAttribLocation(program, "position");
+            var resolutionLocation = gl.getUniformLocation(program, "iResolution");
+            var timeLocation = gl.getUniformLocation(program, "iTime");
+            var mouseLocation = gl.getUniformLocation(program, "iMouse");
+
+            var sceneLocation = gl.getUniformLocation(program, "sceneCell");
+
+            var buffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+            gl.bufferData(
+                gl.ARRAY_BUFFER,
+                new Float32Array([
+                    -1.0, -1.0,
+                    1.0, -1.0,
+                    -1.0, 1.0,
+                    -1.0, 1.0,
+                    1.0, -1.0,
+                    1.0, 1.0]),
+                gl.STATIC_DRAW);
+            gl.enableVertexAttribArray(positionLocation);
+            gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+            const startTime = Date.now();
+
+            let mousePos = { x: 0, y: 0 };
+            let resolution = { x: 0, y: 0 };
+            gl.canvas.width = resolution.x = gl.canvas.clientWidth;
+            gl.canvas.height = resolution.y = gl.canvas.clientHeight;
+
+            canvas.addEventListener('mousemove', event => {
+                let bound = canvas.getBoundingClientRect();
+                mousePos.x = event.clientX - bound.left - canvas.clientLeft;
+                mousePos.y = event.clientY - bound.top - canvas.clientTop;
+            });
+
+            const drawScene = function () {
+                if (gl.canvas.clientHeight != resolution.y || gl.canvas.clientWidth != resolution.x) {
+                    gl.canvas.width = resolution.x = gl.canvas.clientWidth;
+                    gl.canvas.height = resolution.y = gl.canvas.clientHeight;
+                }
+                gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+                gl.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);
+                gl.uniform2f(mouseLocation, mousePos.x, mousePos.y);
+                gl.uniform1f(timeLocation, (Date.now() - startTime) / 1000);
+                gl.uniform1f(sceneLocation, gSceneCell);
+
+                gl.drawArrays(gl.TRIANGLES, 0, 6);
+            };
+
+            gDoAnimFrame = function () {
+                requestAnimationFrame(() => { gDoAnimFrame(); });
+                drawScene();
+            };
+
+            gDoAnimFrame();
+        };
+
+        let loadedCount = 0;
+
+        const args = Object.fromEntries([...new URLSearchParams(location.search)]);
+        if (args.seed) {
+            gSceneCell = parseInt(args.seed) % 10000;
+            document.getElementById('butan').innerText = "Seed #" + gSceneCell;
+        }
+
+        Object.keys(textResources).forEach(k => {
+            const r = textResources[k];
+            r.xhr = new XMLHttpRequest();
+            r.xhr.open('GET', r.uri + "?x=" + (new Date()), true);
+            r.xhr.responseType = "text";
+            r.xhr.onload = function (e) {
+                if (this.readyState == 4) {
+                    loadedCount++;
+                    r.text = r.xhr.responseText;
+                    if (loadedCount == Object.keys(textResources).length) {
+                        OnAllResourcesLoaded();
+                    }
+                }
+            };
+            r.xhr.send();
+        });
+
+
+    </script>
+
+</body>
+
+</html>
