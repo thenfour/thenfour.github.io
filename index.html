@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html>
-<!-- todo: bayer textures, emoji -->
+<!--
+    todo: emoji shader
+    todo: scene hash uniform
+-->
 
 <head>
     <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script> -->
@@ -35,9 +38,9 @@
             text-shadow: -2px -2px 0 black, 2px -2px 0 black, -2px 2px 0 black, 2px 2px 0 black;
             text-decoration: none;
             cursor: pointer;
-            font-size: 24px;
-            border-radius: 18px;
-            border: 4px solid #6b5d92;
+            font-size: 20px;
+            border-radius: 9px;
+            border: 3px solid #666;
             padding: 4px;
             padding-left: 12px;
             padding-right: 12px;
@@ -79,8 +82,8 @@
             top: 10px;
             right: 10px;
             max-height: 90vh;
-            border-radius: 18px;
-            border: 4px solid #6b5d92;
+            border-radius: 9px;
+            border: 3px solid #666;
             padding: 4px;
             padding-left: 12px;
             padding-right: 12px;
@@ -103,7 +106,7 @@
             text-shadow: -2px -2px 0 black, 2px -2px 0 black, -2px 2px 0 black, 2px 2px 0 black;
             text-decoration: none;
             cursor: pointer;
-            font-size: 24px;
+            font-size: 20px;
 
             list-style-type: none;
             margin: 0;
@@ -119,6 +122,10 @@
             color: #c2b9da;
             text-shadow: -2px -2px 0 black, 2px -2px 0 black, -2px 2px 0 black, 2px 2px 0 black;
         }
+        #shaderMenu li.random {
+            color: #666;
+            margin-bottom:12px;
+        }
     </style>
 </head>
 
@@ -131,7 +138,7 @@
             <!-- <li onclick="gotoShader('badHotelArtwork')">bad hotel artwork</li> -->
         </ul>
     </div>
-    <div id="footer"><a href="https://twitter.com/tenfour2">tenfour made this</a></div>
+    <div id="footer"><a href="https://twitter.com/tenfour2">who made this??</a></div>
 
     <script id="vertexShader" type="x-shader/x-vertex">#version 300 es
         precision lowp float;
@@ -186,6 +193,18 @@
             return program;
         };
 
+        const resources = [
+            // more state is held here after resource load & gl init
+            { uri: 'badHotelArtwork.glsl', type: "text" },
+            { uri: 'glitch7.glsl', type: "text" },
+            { uri: 'shardLaundry.glsl', type: "text" },
+            { uri: 'bayer8x8.png', type: "image" },
+        ];
+
+        const textures = [
+            { uri: 'bayer8x8.png' },
+        ];
+
         const apps = [
             {
                 id: "badHotelArtwork",
@@ -199,10 +218,17 @@
                 fragShaderURI: 'glitch7.glsl',
                 // more state is held here after resource load & gl init
             },
+            {
+                id: "shardLaundry",
+                title: "shard laundry",
+                fragShaderURI: 'shardLaundry.glsl',
+                texture0: 'bayer8x8.png',
+                // more state is held here after resource load & gl init
+            },
         ];
 
         let gSceneCell;
-        let gShaderID = "badHotelArtwork";
+        let gShaderID;
 
         const canvas = document.getElementById("canvas");
         const gl = canvas.getContext("webgl2");
@@ -215,7 +241,8 @@
         }
 
         function SwitchToSeed(seed, shouldReplaceInsteadOfPush) {
-            gSceneCell = seed;//GenerateSeed();
+            gSceneCell = seed;
+            gSceneHash = [.2, .3, .4, .5];
             document.getElementById('butan').innerText = "Seed #" + gSceneCell;
             const url = new URL(window.location);
             url.searchParams.set('seed', gSceneCell);
@@ -238,18 +265,6 @@
                 }
 
             }
-        };
-
-        // init shader menu
-        for (var i = 0; i < apps.length; ++i) {
-            const app = apps[i];
-            app.menuItem = document.createElement("li");
-            app.menuItem.innerText = app.title;
-            //const icopy_closures_are_so_weird = i;
-            app.menuItem.addEventListener('click', () => {
-                SwitchToShader(app.id);
-            });
-            document.getElementById("shaderMenuList").appendChild(app.menuItem);
         };
 
         var gPlaying = true;
@@ -321,6 +336,27 @@
             gl.vertexAttribPointer(app.positionLocation, 2, gl.FLOAT, false, 0, 0);
         }
 
+        // init shader menu
+        var randomness = document.createElement("li");
+        randomness.innerText = "<random>";
+        randomness.classList.add("random");
+        randomness.addEventListener('click', () => {
+            var index = Math.floor(Math.random() * apps.length) % apps.length;
+            SwitchToShader(apps[index].id, true);
+            SwitchToSeed(GenerateSeed());
+        });
+        document.getElementById("shaderMenuList").appendChild(randomness);
+
+        for (var i = 0; i < apps.length; ++i) {
+            const app = apps[i];
+            app.menuItem = document.createElement("li");
+            app.menuItem.innerText = app.title;
+            app.menuItem.addEventListener('click', () => {
+                SwitchToShader(app.id);
+            });
+            document.getElementById("shaderMenuList").appendChild(app.menuItem);
+        };
+
         const drawScene = function () {
             var app = apps.find(a => a.id == gShaderID);
             if (gl.canvas.clientHeight != resolution.y || gl.canvas.clientWidth != resolution.x) {
@@ -335,6 +371,14 @@
             }
             gl.uniform1f(app.timeLocation, (Date.now() - gStartTime - gPauseTime) / 1000);
             gl.uniform1f(app.sceneLocation, gSceneCell);
+            gl.uniform4fv(app.sceneHashLocation, gSceneHash);
+
+            if (app.texture0) {
+                var t = textures.find(t => t.uri == app.texture0);
+                gl.activeTexture(gl.TEXTURE0);
+                gl.bindTexture(gl.TEXTURE_2D, t.texture);
+                gl.uniform1i(app.iChannel0, 0);
+            }
 
             gl.drawArrays(gl.TRIANGLES, 0, 6);
         };
@@ -344,11 +388,43 @@
             drawScene();
         };
 
+        const GetLoadedResource = (uri) => {
+            return resources.find(r => r.uri == uri);
+        }
+
         const OnAllResourcesLoaded = () => {
+            //console.log("OnAllResourcesLoaded");
+            apps.forEach(app => {
+                app.fragmentShader = loadShader(gl, GetLoadedResource(app.fragShaderURI).xhr.responseText, gl.FRAGMENT_SHADER);
+                app.program = loadProgram(gl, [gVertexShader, app.fragmentShader]);
+                app.positionLocation = gl.getAttribLocation(app.program, "position");
+                app.resolutionLocation = gl.getUniformLocation(app.program, "iResolution");
+                app.timeLocation = gl.getUniformLocation(app.program, "iTime");
+                app.mouseLocation = gl.getUniformLocation(app.program, "iMouse");
+                app.sceneLocation = gl.getUniformLocation(app.program, "sceneCell");
+                app.sceneHashLocation = gl.getUniformLocation(app.program, "iSceneHash");
+                app.iChannel0 = gl.getUniformLocation(app.program, 'iChannel0');
+                app.iChannel1 = gl.getUniformLocation(app.program, 'iChannel1');
+                app.iChannel2 = gl.getUniformLocation(app.program, 'iChannel2');
+                app.iChannel3 = gl.getUniformLocation(app.program, 'iChannel3');
+            });
+
+            textures.forEach(tex => {
+                var res = GetLoadedResource(tex.uri);
+                tex.texture = gl.createTexture();
+                gl.bindTexture(gl.TEXTURE_2D, tex.texture);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
+                    gl.RGBA, gl.UNSIGNED_BYTE, res.image);
+
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            });
+
             const args = Object.fromEntries([...new URLSearchParams(location.search)]);
 
             var selectedAppID = args['shader'];
-            if (selectedAppID && apps.find(a => a.id == selectedAppID)) {                
+            if (selectedAppID && apps.find(a => a.id == selectedAppID)) {
                 SwitchToShader(selectedAppID, true);
             } else {
                 var index = Math.floor(Math.random() * apps.length) % apps.length;
@@ -358,7 +434,6 @@
             var selectedSeed = parseInt(args.seed) % 10000;
             if (!isNaN(selectedSeed)) {
                 SwitchToSeed(selectedSeed, true);
-                //
             } else {
                 SwitchToSeed(GenerateSeed(), true);
             }
@@ -368,30 +443,33 @@
 
         let loadedCount = 0;
 
-        apps.forEach(app => {
-            app.xhr = new XMLHttpRequest();
-            app.xhr.open('GET', app.fragShaderURI + "?x=" + (Date.now()), true);
-            app.xhr.responseType = "text";
-            app.xhr.onload = e => {
-                if (app.xhr.readyState == 4) {
+        resources.forEach(res => {
+            if (res.type == "text") {
+                res.xhr = new XMLHttpRequest();
+                res.xhr.open('GET', res.uri + "?x=" + (Date.now()), true);
+                res.xhr.responseType = "text";
+                res.xhr.onload = e => {
+                    if (res.xhr.readyState == 4) {
+                        //console.log("Loaded " + res.uri);
+                        loadedCount++;
+                        if (loadedCount == resources.length) {
+                            OnAllResourcesLoaded();
+                        }
+                    }
+                };
+                res.xhr.send();
+            } else if (res.type == "image") {
+                res.image = new Image();
+                res.image.onload = () => {
+                    //console.log("Loaded " + res.uri);
                     loadedCount++;
-                    app.fragShaderText = app.xhr.responseText;
-                    app.fragmentShader = loadShader(gl, app.fragShaderText, gl.FRAGMENT_SHADER);
-                    app.program = loadProgram(gl, [gVertexShader, app.fragmentShader]);
-                    app.positionLocation = gl.getAttribLocation(app.program, "position");
-                    app.resolutionLocation = gl.getUniformLocation(app.program, "iResolution");
-                    app.timeLocation = gl.getUniformLocation(app.program, "iTime");
-                    app.mouseLocation = gl.getUniformLocation(app.program, "iMouse");
-                    app.sceneLocation = gl.getUniformLocation(app.program, "sceneCell");
-
-                    if (loadedCount == apps.length) {
+                    if (loadedCount == resources.length) {
                         OnAllResourcesLoaded();
                     }
-                }
-            };
-            app.xhr.send();
+                };
+                res.image.src = res.uri
+            }
         });
-
 
 
     </script>

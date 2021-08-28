@@ -6,11 +6,15 @@ uniform float iTime;
 uniform vec2 iMouse;
 uniform float sceneCell;
 uniform vec4 iSceneHash;
+uniform sampler2D iChannel0;
+uniform sampler2D iChannel1;
+uniform sampler2D iChannel2;
+uniform sampler2D iChannel3;
 
 #define BLUR
 const vec2 z = vec2(1, 8);
 const ivec2 samples = ivec2(2, 2);
-const float complexity = 8.;
+const float complexity = 10.;
 const float density = .6; // 0-1
 const float sceneswitchspeed = .3;
 
@@ -27,7 +31,7 @@ vec4 tex(vec2 C) {
   vec4 o2 = vec4(1);
   vec2 uv = C / R.xy;
   float t = iTime+10.;
-  vec4 h = hash42(vec2(sceneCell));// floor(uv) + floor(t * sceneswitchspeed));
+  vec4 h = hash42(vec2(100. + sceneCell / 100.));// floor(uv) + floor(t * sceneswitchspeed));
   vec4 hscene = hash42(vec2(sceneCell+1.));// floor(uv) + floor(t * sceneswitchspeed));
   uv.y += uv.x * (h.x - .5);
   uv.x *= R.x / R.y;
@@ -79,13 +83,11 @@ void mainImage(out vec4 o, vec2 C) {
   o = smoothstep(.2, .8, o) * mod(C.x, 3.) / 2.5;
   o = clamp(o, 0., 1.);
   o = pow(o, o - o + .5);
+  o *= 1.-dot(N,N*1.5);
 }
 
 void main() {
   vec4 o;
   mainImage(o, gl_FragCoord.xy);
   fragColor = vec4(o.rgb, 1);
-  // fragColor =      vec4(fract((gl_FragCoord.xyy - iMouse.xyy) /
-  // iResolution.xyy), 1); fragColor = vec4(gl_FragCoord.xyy / iResolution.xyy,
-  // 1);
 }
