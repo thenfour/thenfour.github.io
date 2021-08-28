@@ -5,6 +5,7 @@ uniform vec2 iResolution;
 uniform float iTime;
 uniform vec2 iMouse;
 uniform float sceneCell;
+uniform vec4 iSceneHash;
 
 #define BLUR
 const vec2 z = vec2(1, 8);

@@ -125,7 +125,7 @@
 <body>
     <canvas id="canvas" onclick="canvasClick()"></canvas>
     <!-- <div style="position:absolute;top:0;left:0;color:white;font-size: 24px;" id="log">hi</div> -->
-    <div id="butan" onclick="newSeed()"></div>
+    <div id="butan" onclick="OnSeedButtonClick()"></div>
     <div id="shaderMenu">
         <ul id="shaderMenuList">
             <!-- <li onclick="gotoShader('badHotelArtwork')">bad hotel artwork</li> -->
@@ -214,8 +214,8 @@
             return Math.floor(Math.random() * 10000); // hash42 does not like large seeds.
         }
 
-        function newSeed(shouldReplaceInsteadOfPush) {
-            gSceneCell = GenerateSeed();
+        function SwitchToSeed(seed, shouldReplaceInsteadOfPush) {
+            gSceneCell = seed;//GenerateSeed();
             document.getElementById('butan').innerText = "Seed #" + gSceneCell;
             const url = new URL(window.location);
             url.searchParams.set('seed', gSceneCell);
@@ -257,12 +257,16 @@
         var gPauseStartTime;
         var gPauseTime = 0; // in order to support pause/play.
 
+        function OnSeedButtonClick() {
+            SwitchToSeed(GenerateSeed());
+        }
+
         function canvasClick() {
             if (gPlaying) {
                 gPauseStartTime = Date.now();
             } else {
-                // from pause to play
-                gPauseTime = Date.now() - gPauseStartTime;
+                gStartTime += gPauseTime;
+                gPauseTime = 0;
             }
             gPlaying = !gPlaying;
         }
@@ -341,14 +345,22 @@
         };
 
         const OnAllResourcesLoaded = () => {
-            SwitchToShader(apps[0].id, true);
-
             const args = Object.fromEntries([...new URLSearchParams(location.search)]);
-            if (!isNaN(parseInt(args.seed))) {
-                gSceneCell = parseInt(args.seed) % 10000;
-                document.getElementById('butan').innerText = "Seed #" + gSceneCell;
+
+            var selectedAppID = args['shader'];
+            if (selectedAppID && apps.find(a => a.id == selectedAppID)) {                
+                SwitchToShader(selectedAppID, true);
             } else {
-                newSeed(true);
+                var index = Math.floor(Math.random() * apps.length) % apps.length;
+                SwitchToShader(apps[index].id, true);
+            }
+
+            var selectedSeed = parseInt(args.seed) % 10000;
+            if (!isNaN(selectedSeed)) {
+                SwitchToSeed(selectedSeed, true);
+                //
+            } else {
+                SwitchToSeed(GenerateSeed(), true);
             }
 
             gDoAnimFrame();

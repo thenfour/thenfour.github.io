@@ -4,6 +4,7 @@ out vec4 fragColor;
 uniform vec2 iResolution;
 uniform float iTime;
 uniform vec2 iMouse;
+uniform vec4 iSceneHash;
 
 uniform float sceneCell;
 
