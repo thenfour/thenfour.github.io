@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+<!-- todo: bayer textures, emoji -->
 
 <head>
     <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script> -->
@@ -72,15 +73,65 @@
                 2px 2px 0 black;
             text-decoration: none;
         }
+
+        #shaderMenu {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            max-height: 90vh;
+            border-radius: 18px;
+            border: 4px solid #6b5d92;
+            padding: 4px;
+            padding-left: 12px;
+            padding-right: 12px;
+            background-color: #222;
+            margin-top: 8px;
+            margin-left: 8px;
+        }
+
+        #shaderMenu ul {
+            margin: 0;
+            margin-block: unset;
+            list-style-type: none;
+            padding-block: unset;
+            margin-inline: unset;
+            padding-inline: unset;
+        }
+
+        #shaderMenu li {
+            color: #6b5d92;
+            text-shadow: -2px -2px 0 black, 2px -2px 0 black, -2px 2px 0 black, 2px 2px 0 black;
+            text-decoration: none;
+            cursor: pointer;
+            font-size: 24px;
+
+            list-style-type: none;
+            margin: 0;
+        }
+
+
+        #shaderMenu li:hover {
+            color: #8f7cc2;
+            background-color: #444;
+        }
+
+        #shaderMenu li.selected {
+            color: #c2b9da;
+            text-shadow: -2px -2px 0 black, 2px -2px 0 black, -2px 2px 0 black, 2px 2px 0 black;
+        }
     </style>
 </head>
 
 <body>
-    <canvas id="canvas" onclick="PlayPause()"></canvas>
+    <canvas id="canvas" onclick="canvasClick()"></canvas>
     <!-- <div style="position:absolute;top:0;left:0;color:white;font-size: 24px;" id="log">hi</div> -->
     <div id="butan" onclick="newSeed()"></div>
-    <div id="footer"><a href="https://twitter.com/tenfour2">tenfour</a> made this</div>
-
+    <div id="shaderMenu">
+        <ul id="shaderMenuList">
+            <!-- <li onclick="gotoShader('badHotelArtwork')">bad hotel artwork</li> -->
+        </ul>
+    </div>
+    <div id="footer"><a href="https://twitter.com/tenfour2">tenfour made this</a></div>
 
     <script id="vertexShader" type="x-shader/x-vertex">#version 300 es
         precision lowp float;
@@ -91,30 +142,6 @@
                 </script>
 
     <script type="text/javascript">
-
-        function GenerateSeed() {
-            return Math.floor(Math.random() * 10000);
-        }
-
-        var gDoAnimFrame = () => { };
-
-        let gSceneCell = GenerateSeed();
-        document.getElementById('butan').innerText = "Seed #" + gSceneCell;
-
-        function newSeed() {
-            gSceneCell = GenerateSeed();
-            document.getElementById('butan').innerText = "Seed #" + gSceneCell;
-            const url = new URL(window.location);
-            url.searchParams.set('seed', gSceneCell);
-            window.history.pushState({ seed: gSceneCell }, '', url);
-        }
-
-        window.onpopstate = function (e) {
-            if (e.state) {
-                gSceneCell = e.state.seed;
-                document.getElementById('butan').innerText = "Seed #" + gSceneCell;
-            }
-        };
 
         var loadShader = function (gl, shaderSource, shaderType) {
             var shader = gl.createShader(shaderType);
@@ -159,26 +186,120 @@
             return program;
         };
 
-        const textResources = {
-            fragshader: { uri: 'fragshader.glsl' },
+        const apps = [
+            {
+                id: "badHotelArtwork",
+                title: "bad hotel artwork generator",
+                fragShaderURI: 'badHotelArtwork.glsl',
+                // more state is held here after resource load & gl init
+            },
+            {
+                id: "glitch7",
+                title: "glitch#7",
+                fragShaderURI: 'glitch7.glsl',
+                // more state is held here after resource load & gl init
+            },
+        ];
+
+        let gSceneCell;
+        let gShaderID = "badHotelArtwork";
+
+        const canvas = document.getElementById("canvas");
+        const gl = canvas.getContext("webgl2");
+        const gVertexShader = loadShader(gl, document.getElementById('vertexShader').text, gl.VERTEX_SHADER);
+
+        let mousePos = { x: 0, y: 0 };
+
+        function GenerateSeed() {
+            return Math.floor(Math.random() * 10000); // hash42 does not like large seeds.
+        }
+
+        function newSeed(shouldReplaceInsteadOfPush) {
+            gSceneCell = GenerateSeed();
+            document.getElementById('butan').innerText = "Seed #" + gSceneCell;
+            const url = new URL(window.location);
+            url.searchParams.set('seed', gSceneCell);
+            url.searchParams.set('shader', gShaderID);
+            if (shouldReplaceInsteadOfPush) {
+                window.history.replaceState({ seed: gSceneCell, shader: gShaderID }, '', url);
+            } else {
+                window.history.pushState({ seed: gSceneCell, shader: gShaderID }, '', url);
+            }
+        }
+
+        window.onpopstate = function (e) {
+            if (e.state) {
+                if (e.state.seed) {
+                    gSceneCell = e.state.seed;
+                    document.getElementById('butan').innerText = "Seed #" + gSceneCell;
+                }
+                if (e.state.shader) {
+                    SwitchToShader(e.state.shader);
+                }
+
+            }
         };
 
-        const OnAllResourcesLoaded = () => {
-            var canvas = document.getElementById("canvas");
-            var gl = canvas.getContext("webgl2");
+        // init shader menu
+        for (var i = 0; i < apps.length; ++i) {
+            const app = apps[i];
+            app.menuItem = document.createElement("li");
+            app.menuItem.innerText = app.title;
+            //const icopy_closures_are_so_weird = i;
+            app.menuItem.addEventListener('click', () => {
+                SwitchToShader(app.id);
+            });
+            document.getElementById("shaderMenuList").appendChild(app.menuItem);
+        };
 
-            var vertexShader = loadShader(gl, document.getElementById('vertexShader').text, gl.VERTEX_SHADER);
-            var fragmentShader = loadShader(gl, textResources.fragshader.text, gl.FRAGMENT_SHADER);
-            var program = loadProgram(gl, [vertexShader, fragmentShader]);
-            gl.useProgram(program);
+        var gPlaying = true;
+        var gStartTime = Date.now();
+        var gPauseStartTime;
+        var gPauseTime = 0; // in order to support pause/play.
 
-            // look up where the vertex data needs to go.
-            var positionLocation = gl.getAttribLocation(program, "position");
-            var resolutionLocation = gl.getUniformLocation(program, "iResolution");
-            var timeLocation = gl.getUniformLocation(program, "iTime");
-            var mouseLocation = gl.getUniformLocation(program, "iMouse");
+        function canvasClick() {
+            if (gPlaying) {
+                gPauseStartTime = Date.now();
+            } else {
+                // from pause to play
+                gPauseTime = Date.now() - gPauseStartTime;
+            }
+            gPlaying = !gPlaying;
+        }
 
-            var sceneLocation = gl.getUniformLocation(program, "sceneCell");
+        let resolution = { x: 0, y: 0 };
+        gl.canvas.width = resolution.x = gl.canvas.clientWidth;
+        gl.canvas.height = resolution.y = gl.canvas.clientHeight;
+
+        canvas.addEventListener('mousemove', event => {
+            let bound = canvas.getBoundingClientRect();
+            mousePos.x = event.clientX - bound.left - canvas.clientLeft;
+            mousePos.y = event.clientY - bound.top - canvas.clientTop;
+        });
+
+        function SwitchToShader(id, shouldReplaceInsteadOfPush) {
+            gShaderID = id;
+            var app = apps.find(a => a.id == gShaderID);
+            if (!app) {
+                app = apps[0];
+                gShaderID = app.id;
+            }
+            for (var i = 0; i < apps.length; ++i) {
+                apps[i].menuItem.classList.remove('selected');
+            }
+            app.menuItem.classList.add('selected');
+            document.title = app.title;
+
+            const url = new URL(window.location);
+            url.searchParams.set('seed', gSceneCell);
+            url.searchParams.set('shader', gShaderID);
+            if (shouldReplaceInsteadOfPush) {
+                window.history.replaceState({ seed: gSceneCell, shader: gShaderID }, '', url);
+            } else {
+                window.history.pushState({ seed: gSceneCell, shader: gShaderID }, '', url);
+            }
+
+            gl.useProgram(app.program);
 
             var buffer = gl.createBuffer();
             gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
@@ -192,68 +313,73 @@
                     1.0, -1.0,
                     1.0, 1.0]),
                 gl.STATIC_DRAW);
-            gl.enableVertexAttribArray(positionLocation);
-            gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(app.positionLocation);
+            gl.vertexAttribPointer(app.positionLocation, 2, gl.FLOAT, false, 0, 0);
+        }
 
-            const startTime = Date.now();
+        const drawScene = function () {
+            var app = apps.find(a => a.id == gShaderID);
+            if (gl.canvas.clientHeight != resolution.y || gl.canvas.clientWidth != resolution.x) {
+                gl.canvas.width = resolution.x = gl.canvas.clientWidth;
+                gl.canvas.height = resolution.y = gl.canvas.clientHeight;
+            }
+            gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+            gl.uniform2f(app.resolutionLocation, gl.canvas.width, gl.canvas.height);
+            gl.uniform2f(app.mouseLocation, mousePos.x, mousePos.y);
+            if (!gPlaying) {
+                gPauseTime = Date.now() - gPauseStartTime;
+            }
+            gl.uniform1f(app.timeLocation, (Date.now() - gStartTime - gPauseTime) / 1000);
+            gl.uniform1f(app.sceneLocation, gSceneCell);
 
-            let mousePos = { x: 0, y: 0 };
-            let resolution = { x: 0, y: 0 };
-            gl.canvas.width = resolution.x = gl.canvas.clientWidth;
-            gl.canvas.height = resolution.y = gl.canvas.clientHeight;
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+        };
 
-            canvas.addEventListener('mousemove', event => {
-                let bound = canvas.getBoundingClientRect();
-                mousePos.x = event.clientX - bound.left - canvas.clientLeft;
-                mousePos.y = event.clientY - bound.top - canvas.clientTop;
-            });
+        const gDoAnimFrame = function () {
+            requestAnimationFrame(() => { gDoAnimFrame(); });
+            drawScene();
+        };
 
-            const drawScene = function () {
-                if (gl.canvas.clientHeight != resolution.y || gl.canvas.clientWidth != resolution.x) {
-                    gl.canvas.width = resolution.x = gl.canvas.clientWidth;
-                    gl.canvas.height = resolution.y = gl.canvas.clientHeight;
-                }
-                gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-                gl.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);
-                gl.uniform2f(mouseLocation, mousePos.x, mousePos.y);
-                gl.uniform1f(timeLocation, (Date.now() - startTime) / 1000);
-                gl.uniform1f(sceneLocation, gSceneCell);
+        const OnAllResourcesLoaded = () => {
+            SwitchToShader(apps[0].id, true);
 
-                gl.drawArrays(gl.TRIANGLES, 0, 6);
-            };
-
-            gDoAnimFrame = function () {
-                requestAnimationFrame(() => { gDoAnimFrame(); });
-                drawScene();
-            };
+            const args = Object.fromEntries([...new URLSearchParams(location.search)]);
+            if (!isNaN(parseInt(args.seed))) {
+                gSceneCell = parseInt(args.seed) % 10000;
+                document.getElementById('butan').innerText = "Seed #" + gSceneCell;
+            } else {
+                newSeed(true);
+            }
 
             gDoAnimFrame();
         };
 
         let loadedCount = 0;
 
-        const args = Object.fromEntries([...new URLSearchParams(location.search)]);
-        if (args.seed) {
-            gSceneCell = parseInt(args.seed) % 10000;
-            document.getElementById('butan').innerText = "Seed #" + gSceneCell;
-        }
-
-        Object.keys(textResources).forEach(k => {
-            const r = textResources[k];
-            r.xhr = new XMLHttpRequest();
-            r.xhr.open('GET', r.uri + "?x=" + (new Date()), true);
-            r.xhr.responseType = "text";
-            r.xhr.onload = function (e) {
-                if (this.readyState == 4) {
+        apps.forEach(app => {
+            app.xhr = new XMLHttpRequest();
+            app.xhr.open('GET', app.fragShaderURI + "?x=" + (Date.now()), true);
+            app.xhr.responseType = "text";
+            app.xhr.onload = e => {
+                if (app.xhr.readyState == 4) {
                     loadedCount++;
-                    r.text = r.xhr.responseText;
-                    if (loadedCount == Object.keys(textResources).length) {
+                    app.fragShaderText = app.xhr.responseText;
+                    app.fragmentShader = loadShader(gl, app.fragShaderText, gl.FRAGMENT_SHADER);
+                    app.program = loadProgram(gl, [gVertexShader, app.fragmentShader]);
+                    app.positionLocation = gl.getAttribLocation(app.program, "position");
+                    app.resolutionLocation = gl.getUniformLocation(app.program, "iResolution");
+                    app.timeLocation = gl.getUniformLocation(app.program, "iTime");
+                    app.mouseLocation = gl.getUniformLocation(app.program, "iMouse");
+                    app.sceneLocation = gl.getUniformLocation(app.program, "sceneCell");
+
+                    if (loadedCount == apps.length) {
                         OnAllResourcesLoaded();
                     }
                 }
             };
-            r.xhr.send();
+            app.xhr.send();
         });
+
 
 
     </script>
