@@ -42,7 +42,7 @@ void mainImage( out vec4 o, in vec2 fragCoord)
     vec2 uv = fragCoord / R - .5;
     uv.x *= R.x / R.y;
 
-    vec4 hscene = hash42(vec2(sceneCell));
+    vec4 hscene = hash42(vec2(sceneCell/500.));
 
     float t = (iTime + 129.) * .6; //t = 0.;
     uv = uv.yx;
@@ -69,7 +69,7 @@ void mainImage( out vec4 o, in vec2 fragCoord)
     vec2 N = (fragCoord / R )- .5;
     o = clamp(o,.0,1.);
     o = pow(o, vec4(.2));
-    o.rgb -= hash32(fragCoord + iTime).r*(1./255.);
+    //o.rgb -= hash32(fragCoord + iTime).r*.8;
     
     N = pow(abs(N), vec2(2.5));
     N *= 7.;
