@@ -107,7 +107,7 @@
 <body>
     <canvas id="canvas" onclick="canvasClick()"></canvas>
     <div id="controls">
-        <div id="randomness" class="buttonlike" onclick="OnRandomClick()">&lt;klik&gt;</div>
+        <div id="randomness" class="buttonlike" onclick="OnRandomClick()">&lt;random&gt;</div>
         <div id="butan" class="buttonlike" onclick="OnSeedButtonClick()"></div>
         <div id="shaderMenu">
             <ul id="shaderMenuList">
@@ -116,9 +116,9 @@
     </div>
     <div id="footer"><a href="https://twitter.com/tenfour2">who made this</a></div>
 
-    <script id="vertexShader" type="x-shader/x-vertex">#version 300 es
+    <script id="vertexShader" type="x-shader/x-vertex">
         precision lowp float;
-        in vec4 position;
+        attribute vec4 position;
         void main() {
             gl_Position = position;
           }
@@ -126,7 +126,7 @@
 
     <script type="text/javascript">
 
-        var loadShader = function (gl, shaderSource, shaderType) {
+        var loadShader = function (gl, shaderSource, shaderType, shaderName) {
             var shader = gl.createShader(shaderType);
             gl.shaderSource(shader, shaderSource);
             gl.compileShader(shader);
@@ -136,7 +136,7 @@
             if (!compiled) {
                 // Something went wrong during compilation; get the error
                 lastError = gl.getShaderInfoLog(shader);
-                console.log("*** Error compiling shader '" + shader + "':" + lastError);
+                console.log("*** Error compiling shader '" + shaderName + "':" + lastError);
                 gl.deleteShader(shader);
                 return null;
             }
@@ -228,8 +228,8 @@
         let gShaderID;
 
         const canvas = document.getElementById("canvas");
-        const gl = canvas.getContext("webgl2");
-        const gVertexShader = loadShader(gl, document.getElementById('vertexShader').text, gl.VERTEX_SHADER);
+        const gl = canvas.getContext("experimental-webgl"); // unfortunately ios doesn't support webgl2
+        const gVertexShader = loadShader(gl, document.getElementById('vertexShader').text, gl.VERTEX_SHADER, "vertex shader");
 
         let mousePos = { x: 0, y: 0 };
 
@@ -246,7 +246,7 @@
         function SwitchToSeed(seed, shouldReplaceInsteadOfPush) {
             gSceneCell = seed;
             gSceneHash = [.2, .3, .4, .5];
-            document.getElementById('butan').innerText = "<#" + gSceneCell + ">";
+            document.getElementById('butan').innerText = "<variation " + gSceneCell + ">";
             const url = new URL(window.location);
             url.searchParams.set('seed', gSceneCell);
             url.searchParams.set('shader', gShaderID);
@@ -387,9 +387,8 @@
         }
 
         const OnAllResourcesLoaded = () => {
-            //console.log("OnAllResourcesLoaded");
             apps.forEach(app => {
-                app.fragmentShader = loadShader(gl, GetLoadedResource(app.fragShaderURI).xhr.responseText, gl.FRAGMENT_SHADER);
+                app.fragmentShader = loadShader(gl, GetLoadedResource(app.fragShaderURI).xhr.responseText, gl.FRAGMENT_SHADER, app.id);
                 app.program = loadProgram(gl, [gVertexShader, app.fragmentShader]);
                 app.positionLocation = gl.getAttribLocation(app.program, "position");
                 app.resolutionLocation = gl.getUniformLocation(app.program, "iResolution");

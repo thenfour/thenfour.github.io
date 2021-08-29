@@ -1,6 +1,6 @@
-#version 300 es
 precision lowp float;
-out vec4 fragColor;
+//out vec4 fragColor;
+#define fragColor gl_FragColor
 uniform vec2 iResolution;
 uniform float iTime;
 uniform vec2 iMouse;
@@ -23,10 +23,10 @@ void mainImage(out vec4 o, vec2 C) {
   vec2 uv = C / iResolution.xx + 100.;
   //uv += iMouse.xy/iResolution.xy*.1 - .5;
   float sh = 1.0;
-  float t = (iTime - 9.) * .06 + sceneCell / 500.;
+  float t = (iTime) * .1 + sceneCell / 500.;
   vec4 hscene = hash42(vec2(sceneCell / 500.));
-  uv *= mix(3.,6.,hscene.z);
-  uv *= rot2D(floor(hscene.w*4.)/8.*6.28);
+  uv *= mix(2.,6.,hscene.z);
+  uv *= rot2D((3.14159*.25) + (floor(hscene.w*100.)*.5*3.14159));
   o = vec4(0);
   for (float i = 0.; i < 24.; ++i) {
     vec4 h = hash42(floor(uv));
@@ -35,9 +35,9 @@ void mainImage(out vec4 o, vec2 C) {
     o += h * sh; // accumulate color
 
     vec2 uv2 = uv.yx - .5; // centered uv
-    uv2 -= (t + t) / (hscene.z > .5 ? ((i+1.)*hscene.z) : 1.);
-    uv += (fract(uv2) - .5) * (fract(uv2) - .5)*mix(.5,1.0,hscene.y); // skew in 2d
-    uv += t;
+    uv2 -= (t) / (hscene.z > .5 ? ((i+1.)*hscene.z) : 1.);
+    uv += (fract(uv2) - .5) * (fract(uv2) - .5);//*mix(.5,1.0,hscene.y); // skew in 2d
+    uv += (t * hscene.w);// / (i+1.);
   }
 
   o = (sin(o * 2.) * .5 + .5) * sqrt(sh);

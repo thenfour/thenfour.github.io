@@ -1,6 +1,6 @@
-#version 300 es
-precision lowp float;
-out vec4 fragColor;
+precision mediump float;
+//out vec4 fragColor;
+#define fragColor gl_FragColor
 uniform vec2 iResolution;
 uniform float iTime;
 uniform vec2 iMouse;
@@ -26,7 +26,7 @@ vec4 hash42(vec2 p) {
 mat2 rot2D(float r) { return mat2(cos(r), sin(r), -sin(r), cos(r)); }
 
 float bayer8x8(vec2 uvScreenSpace) {
-  return texture(iChannel0, uvScreenSpace / (ResolutionDivisor * 8.)).r;
+  return texture2D(iChannel0, uvScreenSpace / (ResolutionDivisor * 8.)).r;
 }
 
 void mainImage(out vec4 o, vec2 C) {
@@ -40,7 +40,7 @@ void mainImage(out vec4 o, vec2 C) {
   float scene = sceneCell / 5000.; // floor((iTime + 100.) / SceneDurationSeconds);
   vec4 hscene = hash42(uv - uv + scene);
   uv.x += scene;
-  vec2 escape = 1. - hscene.xy * .12;
+  float escape = 1. - hscene.x * .12;
   float Speed = hscene.z * .01;
 
   for (float i = 0.0; i < Complexity; ++i) {
@@ -48,7 +48,7 @@ void mainImage(out vec4 o, vec2 C) {
     vec2 sq = abs(fract(uv / q));
     sh *= 1. - pow(max(sq.y, max(max(1. - sq.y, sq.x), 1. - sq.x)), 3.5);
     h = hash42(cell);
-    if (i > 3. && h.w > escape[int(i) % 2])
+    if (i > 3. && h.w > escape)
       break;
     uv.x += iTime * sin(h.z * 6.28) * Speed * (i + 1.);
     uv *= rot2D(h.w * 6.28 * hscene.z);
@@ -74,7 +74,7 @@ void mainImage(out vec4 o, vec2 C) {
   o = mix(o, o - o + (max(o.x, max(o.y, o.z))), .5);
 
   o += (bayer8x8(C) - .5) * .15;
-  o = step(o - o + .13, o);
+  o = step(o - o + .1, o);
 }
 
 void main() {

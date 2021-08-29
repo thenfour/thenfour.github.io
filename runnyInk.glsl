@@ -1,6 +1,6 @@
-#version 300 es
 precision lowp float;
-out vec4 fragColor;
+//out vec4 fragColor;
+#define fragColor gl_FragColor
 uniform vec2 iResolution;
 uniform float iTime;
 uniform vec2 iMouse;
