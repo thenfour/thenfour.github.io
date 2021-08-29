@@ -31,7 +31,7 @@ float bayer8x8(vec2 uvScreenSpace) {
 
 void mainImage(out vec4 o, vec2 C) {
   vec2 uv = C / iResolution.xx;
-    uv += iMouse.xy/iResolution.xy*.1 - .5;
+  //uv += iMouse.xy/iResolution.xy*.1 - .5;
   uv += 100.; // seed @ 0 is just black because of rng
   float q = 1.;
   vec4 h;

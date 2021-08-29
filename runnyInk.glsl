@@ -48,7 +48,7 @@ void mainImage( out vec4 o, in vec2 fragCoord)
     uv = uv.yx;
     uv *= mix(1.5, 3.0, hscene.w)+sin(t)*.2;
     uv.x += t*hscene.x;
-    uv.yx += iMouse.xy *.1 / iResolution.xy;
+    //uv.yx += iMouse.xy *.1 / iResolution.xy;
     
     o = vec4(1);
     float sgn = -1.;

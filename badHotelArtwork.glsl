@@ -29,7 +29,7 @@ mat2 rot2D(float r){
 void mainImage(out vec4 o, vec2 C)
 {
     vec2 uv = C/max(iResolution.x,iResolution.y)*4.+100.;
-    uv += iMouse.xy/iResolution.xy*.2 - .5;
+    //uv += iMouse.xy/iResolution.xy*.2 - .5;
     uv *= .8;
     o = vec4(0);
     //float sceneCell = (iTime+100.)/SceneDurationSeconds;

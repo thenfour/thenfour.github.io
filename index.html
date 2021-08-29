@@ -20,6 +20,11 @@
 
         body {
             background-color: black;
+            text-shadow:
+                -2px -2px 0 black,
+                2px -2px 0 black,
+                -2px 2px 0 black,
+                2px 2px 0 black;
         }
 
         #canvas {
@@ -30,14 +35,18 @@
             border: 0;
         }
 
-        #butan {
+        #controls {
             position: absolute;
-            top: 0;
-            left: 0;
+            top: 10px;
+            left: 5px;
+            max-height: calc(100vh - 20px);
+            overflow: auto;
+        }
+
+        #controls>div {
+            border-radius: 9px;
             color: #6b5d92;
-            text-shadow: -2px -2px 0 black, 2px -2px 0 black, -2px 2px 0 black, 2px 2px 0 black;
             text-decoration: none;
-            cursor: pointer;
             font-size: 20px;
             border-radius: 9px;
             border: 3px solid #666;
@@ -49,6 +58,19 @@
             margin-left: 8px;
         }
 
+        #controls .buttonlike {
+            cursor: pointer;
+        }
+
+        #controls .buttonlike:hover {
+            color: #8f7cc2;
+            background-color: #444;
+        }
+
+        #randomness {
+            color: #666;
+        }
+
         #footer {
             position: absolute;
             bottom: 6px;
@@ -56,11 +78,6 @@
             width: 100vw;
             text-align: right;
             font-size: 18px;
-            text-shadow:
-                -2px -2px 0 black,
-                2px -2px 0 black,
-                -2px 2px 0 black,
-                2px 2px 0 black;
         }
 
         #footer,
@@ -69,27 +86,7 @@
         a:link,
         a:hover {
             color: #6b5d92;
-            text-shadow:
-                -2px -2px 0 black,
-                2px -2px 0 black,
-                -2px 2px 0 black,
-                2px 2px 0 black;
             text-decoration: none;
-        }
-
-        #shaderMenu {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            max-height: 90vh;
-            border-radius: 9px;
-            border: 3px solid #666;
-            padding: 4px;
-            padding-left: 12px;
-            padding-right: 12px;
-            background-color: #222;
-            margin-top: 8px;
-            margin-left: 8px;
         }
 
         #shaderMenu ul {
@@ -101,44 +98,23 @@
             padding-inline: unset;
         }
 
-        #shaderMenu li {
-            color: #6b5d92;
-            text-shadow: -2px -2px 0 black, 2px -2px 0 black, -2px 2px 0 black, 2px 2px 0 black;
-            text-decoration: none;
-            cursor: pointer;
-            font-size: 20px;
-
-            list-style-type: none;
-            margin: 0;
-        }
-
-
-        #shaderMenu li:hover {
-            color: #8f7cc2;
-            background-color: #444;
-        }
-
         #shaderMenu li.selected {
             color: #c2b9da;
-            text-shadow: -2px -2px 0 black, 2px -2px 0 black, -2px 2px 0 black, 2px 2px 0 black;
-        }
-        #shaderMenu li.random {
-            color: #666;
-            margin-bottom:12px;
         }
     </style>
 </head>
 
 <body>
     <canvas id="canvas" onclick="canvasClick()"></canvas>
-    <!-- <div style="position:absolute;top:0;left:0;color:white;font-size: 24px;" id="log">hi</div> -->
-    <div id="butan" onclick="OnSeedButtonClick()"></div>
-    <div id="shaderMenu">
-        <ul id="shaderMenuList">
-            <!-- <li onclick="gotoShader('badHotelArtwork')">bad hotel artwork</li> -->
-        </ul>
+    <div id="controls">
+        <div id="randomness" class="buttonlike" onclick="OnRandomClick()">&lt;klik&gt;</div>
+        <div id="butan" class="buttonlike" onclick="OnSeedButtonClick()"></div>
+        <div id="shaderMenu">
+            <ul id="shaderMenuList">
+            </ul>
+        </div>
     </div>
-    <div id="footer"><a href="https://twitter.com/tenfour2">who made this??</a></div>
+    <div id="footer"><a href="https://twitter.com/tenfour2">who made this</a></div>
 
     <script id="vertexShader" type="x-shader/x-vertex">#version 300 es
         precision lowp float;
@@ -261,10 +237,16 @@
             return Math.floor(Math.random() * 10000); // hash42 does not like large seeds.
         }
 
+        function OnRandomClick() {
+            var index = Math.floor(Math.random() * apps.length) % apps.length;
+            SwitchToShader(apps[index].id, true);
+            SwitchToSeed(GenerateSeed());
+        }
+
         function SwitchToSeed(seed, shouldReplaceInsteadOfPush) {
             gSceneCell = seed;
             gSceneHash = [.2, .3, .4, .5];
-            document.getElementById('butan').innerText = "Seed #" + gSceneCell;
+            document.getElementById('butan').innerText = "<#" + gSceneCell + ">";
             const url = new URL(window.location);
             url.searchParams.set('seed', gSceneCell);
             url.searchParams.set('shader', gShaderID);
@@ -358,19 +340,10 @@
         }
 
         // init shader menu
-        var randomness = document.createElement("li");
-        randomness.innerText = "<random>";
-        randomness.classList.add("random");
-        randomness.addEventListener('click', () => {
-            var index = Math.floor(Math.random() * apps.length) % apps.length;
-            SwitchToShader(apps[index].id, true);
-            SwitchToSeed(GenerateSeed());
-        });
-        document.getElementById("shaderMenuList").appendChild(randomness);
-
         for (var i = 0; i < apps.length; ++i) {
             const app = apps[i];
             app.menuItem = document.createElement("li");
+            app.menuItem.classList.add("buttonlike");
             app.menuItem.innerText = app.title;
             app.menuItem.addEventListener('click', () => {
                 SwitchToShader(app.id);

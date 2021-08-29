@@ -21,7 +21,7 @@ mat2 rot2D(float r) { return mat2(cos(r), sin(r), -sin(r), cos(r)); }
 
 void mainImage(out vec4 o, vec2 C) {
   vec2 uv = C / iResolution.xx + 100.;
-    uv += iMouse.xy/iResolution.xy*.1 - .5;
+  //uv += iMouse.xy/iResolution.xy*.1 - .5;
   float sh = 1.0;
   float t = (iTime - 9.) * .06 + sceneCell / 500.;
   vec4 hscene = hash42(vec2(sceneCell / 500.));

@@ -84,7 +84,7 @@ void mainImage( out vec4 o, in vec2 i)
     //uv *= 1.+sin(iTime*0.5)*.1;// zoom
     uv -= hscene.zw;// offset rotation origin
     float rotation = -(iTime+40.)*mix(0.005,0.02,hscene.x) * sign(hscene.y - .5);
-    uv += iMouse.xy *.1 / iResolution.xy;
+    //uv += iMouse.xy *.1 / iResolution.xy;
     uv *= rot2D(rotation);// rot
 
     vec2 cellSize = cellSizePixels / iResolution.x;
