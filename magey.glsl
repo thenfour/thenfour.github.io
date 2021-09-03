@@ -136,18 +136,18 @@ void mainImage( out vec4 o, in vec2 i)
     // tint green / brightness
     //o *= vec4(.5,1,1,0)*2.;
     //o *= hscene*2.;//vec4(.5,1,1,0)*2.;
-    o = mix(o*hscene, o*vec4(.5,1,1,0), hscene.z)*2.;
+    o = mix(o*vec4(.5,1,1,0),o*hscene, hscene.z*.7)*2.;
+    //o = mix(o*hscene, o, hscene.w*.7)*2.;
     
     // noise
     o.rgb += (rand3(uvn*iTime)-.5)*.1;
+    o = clamp(o,0.,1.);
+    o = pow(o, o-o+.8)*1.5;
 
     // vignette
     uvn *= 1.1;
     o *= 1.-dot(uvn,uvn);
     
-    // gamma
-    o = clamp(o,0.,1.);
-    o = pow(o, vec4(1./1.2));
 }
 
 

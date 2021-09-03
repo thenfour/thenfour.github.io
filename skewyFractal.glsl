@@ -20,7 +20,7 @@ vec4 hash42(vec2 p) {
 mat2 rot2D(float r) { return mat2(cos(r), sin(r), -sin(r), cos(r)); }
 
 void mainImage(out vec4 o, vec2 C) {
-  vec2 uv = C / iResolution.xx + 100.;
+  vec2 uv = C / max(iResolution.x, iResolution.y) + 100.;
   //uv += iMouse.xy/iResolution.xy*.1 - .5;
   float sh = 1.0;
   float t = (iTime) * .1 + sceneCell / 500.;

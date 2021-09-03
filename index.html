@@ -1,11 +1,14 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <!--
     todo: emoji shader
     todo: scene hash uniform
 -->
 
 <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <!-- https://stackoverflow.com/questions/22885702/html-for-the-pause-symbol-in-audio-and-video-control/27053825#27053825 -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
     <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script> -->
     <style type="text/css">
         html,
@@ -16,6 +19,12 @@
             width: 100%;
             height: 100%;
             font-family: sans-serif;
+            vertical-align: middle;
+        }
+
+        i.fa {
+            font-size: 13px;
+            vertical-align: middle;
         }
 
         body {
@@ -50,9 +59,9 @@
             font-size: 20px;
             border-radius: 9px;
             border: 3px solid #666;
-            padding: 4px;
+            /*padding: 4px;
             padding-left: 12px;
-            padding-right: 12px;
+            padding-right: 12px;*/
             background-color: #222;
             margin-top: 8px;
             margin-left: 8px;
@@ -60,6 +69,9 @@
 
         #controls .buttonlike {
             cursor: pointer;
+            padding: 1px;
+            padding-left: 12px;
+            padding-right: 12px;
         }
 
         #controls .buttonlike:hover {
@@ -67,8 +79,10 @@
             background-color: #444;
         }
 
-        #randomness {
-            color: #666;
+        div#randomness {
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
         }
 
         #footer {
@@ -105,10 +119,13 @@
 </head>
 
 <body>
-    <canvas id="canvas" onclick="canvasClick()"></canvas>
+    <canvas id="canvas"></canvas>
     <div id="controls">
-        <div id="randomness" class="buttonlike" onclick="OnRandomClick()">&lt;random&gt;</div>
-        <div id="butan" class="buttonlike" onclick="OnSeedButtonClick()"></div>
+        <div>
+            <div id="randomness" class="buttonlike" onclick="OnRandomClick()">random all</div>
+            <div id="butan" class="buttonlike" onclick="OnSeedButtonClick()"></div>
+            <div id="playpause" class="buttonlike" onclick="playPause()"><i class="fa fa-pause"></i> Playing</div>
+        </div>
         <div id="shaderMenu">
             <ul id="shaderMenuList">
             </ul>
@@ -181,6 +198,10 @@
             { uri: 'infiniteHousePlan.glsl', type: "text" },
             { uri: 'keepUpLittleSquare.glsl', type: "text" },
             { uri: 'bayer8x8.png', type: "image" },
+            { uri: 'ninetiesart.glsl', type: "text" },
+            { uri: 'anyoneHome.glsl', type: "text" },
+            { uri: 'stainedLights.glsl', type: "text" },
+            
         ];
 
         const textures = [
@@ -225,12 +246,12 @@
                 fragShaderURI: 'magey.glsl',
                 // more state is held here after resource load & gl init
             },
-            {
-                id: "prettyDonut",
-                title: "pretty donut",
-                fragShaderURI: 'prettyDonut.glsl',
-                // more state is held here after resource load & gl init
-            },
+            // {
+            //     id: "prettyDonut",
+            //     title: "pretty donut",
+            //     fragShaderURI: 'prettyDonut.glsl',
+            //     // more state is held here after resource load & gl init
+            // },
             {
                 id: "infiniteHousePlan",
                 title: "infinite house plan",
@@ -243,6 +264,28 @@
                 fragShaderURI: 'keepUpLittleSquare.glsl',
                 // more state is held here after resource load & gl init
             },
+            {
+                id: "ninetiesart",
+                title: "zany 90's art",
+                fragShaderURI: 'ninetiesart.glsl',
+                texture0: 'bayer8x8.png',
+                // more state is held here after resource load & gl init
+            },
+            {
+                id: "anyoneHome",
+                title: "anyone home?",
+                fragShaderURI: 'anyoneHome.glsl',
+                // more state is held here after resource load & gl init
+            },
+
+            {
+                id: "stainedLights",
+                title: "stained lights",
+                fragShaderURI: 'stainedLights.glsl',
+                // more state is held here after resource load & gl init
+            },
+
+
         ];
 
         let gSceneCell;
@@ -259,7 +302,14 @@
         }
 
         function OnRandomClick() {
-            var index = Math.floor(Math.random() * apps.length) % apps.length;
+            var index;
+            while (true) {
+                index = Math.floor(Math.random() * apps.length) % apps.length;
+                //console.log(" index=" + index + ", shaderid=" + gShaderID);
+                if (apps[index].id != gShaderID) {
+                    break;
+                }
+            }
             SwitchToShader(apps[index].id, true);
             SwitchToSeed(GenerateSeed());
         }
@@ -267,7 +317,7 @@
         function SwitchToSeed(seed, shouldReplaceInsteadOfPush) {
             gSceneCell = seed;
             gSceneHash = [.2, .3, .4, .5];
-            document.getElementById('butan').innerText = "<variation " + gSceneCell + ">";
+            document.getElementById('butan').innerText = "random variation " + gSceneCell;
             const url = new URL(window.location);
             url.searchParams.set('seed', gSceneCell);
             url.searchParams.set('shader', gShaderID);
@@ -300,12 +350,14 @@
             SwitchToSeed(GenerateSeed());
         }
 
-        function canvasClick() {
+        function playPause() {
             if (gPlaying) {
                 gPauseStartTime = Date.now();
+                document.getElementById("playpause").innerHTML = "<i class='fa fa-play'></i> Paused";
             } else {
                 gStartTime += gPauseTime;
                 gPauseTime = 0;
+                document.getElementById("playpause").innerHTML = "<i class='fa fa-pause'></i> Playing";
             }
             gPlaying = !gPlaying;
         }
